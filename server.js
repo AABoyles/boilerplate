@@ -14,6 +14,14 @@ var { graphqlHTTP } = require('express-graphql');
 var { buildSchema } = require('graphql');
 const { readFileSync } = require('fs');
 
+app.use(express.static('public'));
+
+app.use('/api', graphqlHTTP({
+  schema: buildSchema(readFileSync('./graphql.schema', 'utf8')),
+  rootValue: require('./graphqlRoot.js'),
+  graphiql: (process.env.NODE_ENV !== 'PROD')
+}));
+
 const users = [];
 
 passport.use(new LocalStrategy({ usernameField: 'email' }, (email, password, done) => {
@@ -32,7 +40,6 @@ passport.deserializeUser((id, done) => done(null, users.find(user => user.id ===
 
 app.set('view-engine', 'ejs');
 app.use(express.urlencoded({ extended: false }));
-app.use(express.static('public'));
 app.use(flash());
 app.use(session({
   secret: process.env.SESSION_SECRET,
@@ -42,12 +49,6 @@ app.use(session({
 app.use(passport.initialize());
 app.use(passport.session());
 app.use(methodOverride('_method'));
-
-app.use('/api', graphqlHTTP({
-  schema: buildSchema(readFileSync('graphql.schema').toString()),
-  rootValue: require('./graphqlRoot'),
-  graphiql: (process.env.NODE_ENV !== 'PROD')
-}));
 
 app.get('/', checkAuthenticated, (req, res) => {
   res.render('index.ejs', { email: req.user.email });
