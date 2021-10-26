@@ -1,0 +1,9 @@
+<%- include('header'); %>
+
+<h1>Hi!, <%= email %></h1>
+
+<form action="/logout?_method=DELETE" method="POST">
+  <button type="submit">Log Out</button>
+</form>
+
+<%- include('footer'); %>
