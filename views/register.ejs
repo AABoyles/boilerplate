@@ -1,5 +1,11 @@
 <h1>Register</h1>
 
+<% if (messages.error) { %>
+  <div class="alert alert-danger" role="alert">
+      <%= messages.error %>
+  </div>
+<% } %>
+
 <form action="/register" method="POST">
   <div>
     <label for="email">Email</label>

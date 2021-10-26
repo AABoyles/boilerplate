@@ -14,6 +14,13 @@ var { graphqlHTTP } = require('express-graphql');
 var { buildSchema } = require('graphql');
 const { readFileSync } = require('fs');
 
+const knex = require('knex')({
+  client: 'sqlite3',
+  connection: {
+    filename: process.env.SQLITE_DB_PATH
+  }
+});
+
 app.use(express.static('public'));
 
 app.use('/api', graphqlHTTP({
@@ -22,21 +29,30 @@ app.use('/api', graphqlHTTP({
   graphiql: (process.env.NODE_ENV !== 'PROD')
 }));
 
-const users = [];
-
 passport.use(new LocalStrategy({ usernameField: 'email' }, (email, password, done) => {
-  const user = users.find(user => user.email === email);
-  if(user == null){
-    return done(null, false, {message: 'No user with that email'});
-  }
-  if(bcrypt.compareSync(password, user.password)){
-    return done(null, user);
-  } else {
-    return done(null, false, {message: 'Password incorrect'});
-  }
+  knex
+    .first('*')
+    .from('users')
+    .where('email', email)
+    .then(user => {
+      if(!user) return done(null, false, {message: 'Sorry, your username or password is incorrect.'});
+      if(bcrypt.compareSync(password, user.passwd)){
+        return done(null, user);
+      } else {
+        return done(null, false, {message: 'Sorry, your username or password is incorrect.'});
+      }
+    });
 }));
+
 passport.serializeUser((user, done) => done(null, user.id));
-passport.deserializeUser((id, done) => done(null, users.find(user => user.id === id)));
+
+passport.deserializeUser((id, done) => {
+  knex
+    .first('*')
+    .from('users')
+    .where('id', id)
+    .then(user => done(null, user));
+});
 
 app.set('view-engine', 'ejs');
 app.use(express.urlencoded({ extended: false }));
@@ -55,7 +71,6 @@ app.get('/', checkAuthenticated, (req, res) => {
 });
 
 app.get('/login', checkNotAuthenticated, (req, res) => {
-  console.log(users);
   res.render('login.ejs');
 });
 
@@ -70,13 +85,27 @@ app.get('/register', checkNotAuthenticated, (req, res) => {
 });
 
 app.post('/register', checkNotAuthenticated, (req, res) => {
-  bcrypt.hash(req.body.password, 10).then(hashedPassword => {
-    users.push({
-      id: Date.now().toString(),
-      email: req.body.email,
-      password: hashedPassword
-    });
-    res.redirect('/login');
+  knex
+    .first('*')
+    .from('users')
+    .where('email', req.body.email)
+    .then(user => {
+      if(user){
+        req.flash('error', 'Sorry, you cannot register that email.');
+        res.redirect(301, '/register');
+      } else {
+        bcrypt.hash(req.body.password, 10).then(hashedPassword => {
+          knex
+            .insert({
+              id: Date.now(),
+              name: "Tony",
+              email: req.body.email,
+              passwd: hashedPassword
+            })
+            .into('users')
+            .then(() => res.redirect('/login'));
+        });
+      }
   });
 });
 

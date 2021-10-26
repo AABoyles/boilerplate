@@ -20,10 +20,13 @@
     "express-graphql": "^0.12.0",
     "express-session": "^1.17.2",
     "graphql": "^15.6.1",
+    "knex": "^0.95.11",
     "method-override": "^3.0.0",
     "nodemon": "^2.0.14",
     "passport": "^0.5.0",
+    "passport-jwt": "^4.0.0",
     "passport-local": "^1.0.0",
-    "pm2": "^5.1.2"
+    "pm2": "^5.1.2",
+    "sqlite3": "^5.0.2"
   }
 }
